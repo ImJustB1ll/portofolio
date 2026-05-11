@@ -1,19 +1,38 @@
-export default function Home() {
+// src/app/page.tsx
+import { createClient } from '@/utils/supabase/server';
+import { ScrollSections } from '@/components/dom/ScrollSections';
+
+export const revalidate = 60; // Optional ISR: re-fetches backend data every 60 seconds
+
+export default async function Home() {
+  const supabase = await createClient();
+
+  // Fetch live portfolio showcases ordered by your sequence index
+  const { data: projects, error } = await supabase
+    .from('projects')
+    .select('*')
+    .order('order_index', { ascending: true });
+
+  if (error) {
+    console.error("Error fetching projects:", error);
+    return (
+      <div className="h-screen flex items-center justify-center bg-black text-red-500">
+        Failed to load portfolio data.
+      </div>
+    );
+  }
+
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-black text-gray-500">
+        No projects found. Please add test rows via your Supabase dashboard.
+      </div>
+    );
+  }
+
   return (
     <div id="scroll-container" className="w-full">
-      <section className="h-screen flex items-center justify-start p-12">
-        <div className="max-w-md">
-          <h1 className="text-5xl font-bold mb-4">Hero Introduction</h1>
-          <p className="text-gray-400">The 3D model sits perfectly framed to the right.</p>
-        </div>
-      </section>
-
-      <section className="h-screen flex items-center justify-end p-12">
-        <div className="max-w-md text-right">
-          <h2 className="text-4xl font-bold mb-4">Feature Transformation</h2>
-          <p className="text-gray-400">As you scroll, GSAP smoothly shifts the model's position and rotation to match this context.</p>
-        </div>
-      </section>
+      <ScrollSections projects={projects} />
     </div>
   );
 }
