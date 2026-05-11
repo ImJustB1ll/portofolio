@@ -1,10 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
+    // 1. Create an intercepted proxy clone of the incoming request headers
+    const requestHeaders = new Headers(request.headers);
+
+    // 2. Initialize a clean downstream response mapped to the proxied headers
     let supabaseResponse = NextResponse.next({
         request: {
-            headers: request.headers,
+            headers: requestHeaders,
         },
     });
 
@@ -24,10 +28,17 @@ export async function middleware(request: NextRequest) {
                     return request.cookies.getAll();
                 },
                 setAll(cookiesToSet) {
+                    // Update the request cookies securely so downstream Server Components see the fresh state instantly
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+
+                    // Re-clone the response proxy to lock in the refreshed request context
                     supabaseResponse = NextResponse.next({
-                        request,
+                        request: {
+                            headers: requestHeaders,
+                        },
                     });
+
+                    // Explicitly append the Set-Cookie directives to the outbound response pipeline
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
                     );
@@ -36,7 +47,7 @@ export async function middleware(request: NextRequest) {
         }
     );
 
-    // Refresh session if applicable
+    // Trigger the session validation/refresh loop
     await supabase.auth.getUser();
 
     return supabaseResponse;
@@ -44,13 +55,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * Feel free to modify this pattern to include more paths.
-         */
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 };
