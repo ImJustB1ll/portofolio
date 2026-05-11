@@ -1,38 +1,36 @@
-// src/app/page.tsx
 import { createClient } from '@/utils/supabase/server';
 import { ScrollSections } from '@/components/dom/ScrollSections';
+import { CanvasWrapper } from '@/components/canvas/CanvasWrapper';
 
-export const revalidate = 60; // Optional ISR: re-fetches backend data every 60 seconds
+export const revalidate = 60;
 
 export default async function Home() {
   const supabase = await createClient();
 
-  // Fetch live portfolio showcases ordered by your sequence index
   const { data: projects, error } = await supabase
     .from('projects')
     .select('*')
     .order('order_index', { ascending: true });
 
-  if (error) {
-    console.error("Error fetching projects:", error);
+  if (error || !projects || projects.length === 0) {
     return (
       <div className="h-screen flex items-center justify-center bg-black text-red-500">
-        Failed to load portfolio data.
+        Failed to load portfolio data. Add projects via Supabase.
       </div>
     );
   }
 
-  if (!projects || projects.length === 0) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-black text-gray-500">
-        No projects found. Please add test rows via your Supabase dashboard.
-      </div>
-    );
-  }
+  // Safely grab the very first project's asset URL directly from the server
+  const initialModelUrl = projects[0]?.model_url || "";
 
   return (
-    <div id="scroll-container" className="w-full">
-      <ScrollSections projects={projects} />
-    </div>
+    <>
+      {/* Canvas initializes instantly with the real asset — zero flickering */}
+      <CanvasWrapper initialModelUrl={initialModelUrl} />
+
+      <div id="scroll-container" className="w-full relative z-10">
+        <ScrollSections projects={projects} />
+      </div>
+    </>
   );
 }

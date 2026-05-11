@@ -11,8 +11,8 @@ interface ShowcaseModelProps {
 export function ShowcaseModel({ assetUrl }: ShowcaseModelProps) {
     const groupRef = useRef<THREE.Group>(null);
 
-    // Pass the local draco path as the second argument
-    const { scene } = useGLTF(assetUrl, '/draco');
+    // Explicit trailing slash guarantees correct WASM path concatenation
+    const { scene } = useGLTF(assetUrl, '/draco/');
 
     return (
         <group ref={groupRef} dispose={null}>
