@@ -5,10 +5,8 @@ import { CanvasWrapper } from '@/components/canvas/CanvasWrapper';
 export const revalidate = 60;
 
 export default async function Home() {
-  // 1. Initialize the SSR client (automatically inherits your .env.local variables)
   const supabase = await createClient();
 
-  // 2. Fetch the raw portfolio showcases ordered by your sequence index
   const { data: rawProjects, error } = await supabase
     .from('projects')
     .select('*')
